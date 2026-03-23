@@ -1,111 +1,132 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
 const supabaseUrl = 'https://tkcjckvqttmnswaktuvk.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrY2pja3ZxdHRtbnN3YWt0dXZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyNTE3OTIsImV4cCI6MjA3MTgyNzc5Mn0.Hrzdoue4XSQ1wk93apnRVg_DG0qIfM4hocnjl5yrITM';
+const supabaseAnonKey = 'SUA_ANON_KEY_AQUI';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-const container = document.getElementById('items-container');
-const gerarBtn = document.getElementById("gerar-resultado");
+const form = document.getElementById('form');
 
-let selectedItems = [];
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
 
-function setView(view) {
-  container.className = view === 'grid' ? 'grid-view' : 'list-view';
-}
+  const nome = document.getElementById('nome').value.trim();
+  const matricula = document.getElementById('matricula').value.trim();
+  const telefone = document.getElementById('telefone').value.trim();
+  const fotoPerfil = document.getElementById('fotoPerfil').files[0];
+  const fotosItens = Array.from(document.getElementById('fotosItens').files);
 
-function toggleSelect(url, element) {
-  if (selectedItems.includes(url)) {
-    selectedItems = selectedItems.filter(i => i !== url);
-    element.classList.remove('selected');
-  } else {
-    if (selectedItems.length >= 3) {
-      alert("Você só pode escolher até 3 itens.");
-      return;
+  if (!nome || !matricula || !telefone) {
+    alert('Preencha todos os campos obrigatórios.');
+    return;
+  }
+
+  if (!fotoPerfil) {
+    alert('Envie uma foto de perfil.');
+    return;
+  }
+
+  if (fotosItens.length < 1 || fotosItens.length > 2) {
+    alert('Envie no mínimo 1 e no máximo 2 imagens de objetos.');
+    return;
+  }
+
+  let perfilPath = null;
+  const itensPaths = [];
+
+  try {
+    // 1) Upload da foto de perfil
+    perfilPath = `Padrinhos/${matricula}_perfil_${Date.now()}_${fotoPerfil.name}`;
+
+    const { error: errPerfil } = await supabase.storage
+      .from('Padrinhos')
+      .upload(perfilPath, fotoPerfil, { upsert: true });
+
+    if (errPerfil) throw errPerfil;
+
+    const { data: perfilData } = supabase.storage
+      .from('Padrinhos')
+      .getPublicUrl(perfilPath);
+
+    const fotoPerfilUrl = perfilData.publicUrl;
+
+    // 2) Upload das fotos dos itens
+    const fotosItensUrls = [];
+
+    for (let i = 0; i < fotosItens.length; i++) {
+      const arquivo = fotosItens[i];
+      const itemPath = `Itens/${matricula}_item${i + 1}_${Date.now()}_${arquivo.name}`;
+
+      const { error: errItem } = await supabase.storage
+        .from('Itens')
+        .upload(itemPath, arquivo, { upsert: true });
+
+      if (errItem) throw errItem;
+
+      itensPaths.push(itemPath);
+
+      const { data: itemData } = supabase.storage
+        .from('Itens')
+        .getPublicUrl(itemPath);
+
+      fotosItensUrls.push(itemData.publicUrl);
     }
-    selectedItems.push(url);
-    element.classList.add('selected');
-  }
-  console.log("Selecionados:", selectedItems);
-}
 
-async function loadItens() {
-  // lista a pasta "Itens" dentro do bucket
-  const { data, error } = await supabase
-    .storage
-    .from('Itens')
-    .list('Itens', { limit: 100 });
+    // 3) Inserir no banco
+    const { error: insertError } = await supabase
+      .from('padrinhos')
+      .insert([
+        {
+          nome,
+          matricula,
+          telefone,
+          foto_perfil: fotoPerfilUrl,
+          fotos_itens: fotosItensUrls
+        }
+      ]);
 
-  if (error) {
-    console.error('Erro ao listar itens:', error);
-    return;
-  }
+    if (insertError) throw insertError;
 
-  console.log("Arquivos encontrados:", data);
+    // 4) Verificar buscando de volta
+    const { data: padrinhoSalvo, error: selectError } = await supabase
+      .from('padrinhos')
+      .select('nome, matricula, telefone, foto_perfil, fotos_itens')
+      .eq('matricula', matricula)
+      .single();
 
-  if (!data || data.length === 0) {
-    container.innerHTML = "<p>Nenhum item encontrado no bucket.</p>";
-    return;
-  }
+    if (selectError) throw new Error('Não foi possível verificar o cadastro salvo.');
 
-  for (let file of data) {
-    // 👉 ignora qualquer coisa que não seja imagem antes de criar o <img>
-    if (!file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-      console.log("Ignorando arquivo não imagem:", file.name);
-      continue;
+    const dadosConferem =
+      padrinhoSalvo.nome === nome &&
+      padrinhoSalvo.matricula === matricula &&
+      padrinhoSalvo.telefone === telefone &&
+      padrinhoSalvo.foto_perfil === fotoPerfilUrl &&
+      Array.isArray(padrinhoSalvo.fotos_itens) &&
+      padrinhoSalvo.fotos_itens.length === fotosItensUrls.length &&
+      fotosItensUrls.every(url => padrinhoSalvo.fotos_itens.includes(url));
+
+    if (!dadosConferem) {
+      throw new Error('Os dados salvos não conferem com o upload realizado.');
     }
 
-    // monta o caminho completo com a pasta
-    const filePath = `Itens/${file.name}`;
+    alert('Cadastro realizado com sucesso!');
+    form.reset();
 
-    const { data: urlData } = supabase
-      .storage
-      .from('Itens')
-      .getPublicUrl(filePath);
+  } catch (error) {
+    console.error('Erro no cadastro:', error);
 
-    console.log("URL gerada:", urlData.publicUrl);
+    // apaga imagens do bucket se não salvar o cadastro
+    try {
+      if (perfilPath) {
+        await supabase.storage.from('Padrinhos').remove([perfilPath]);
+      }
 
-    const img = document.createElement('img');
-    img.src = urlData.publicUrl;
-    img.className = "item-img";
-    img.onclick = () => toggleSelect(urlData.publicUrl, img);
+      if (itensPaths.length > 0) {
+        await supabase.storage.from('Itens').remove(itensPaths);
+      }
+    } catch (rollbackError) {
+      console.error('Erro ao fazer rollback dos arquivos:', rollbackError);
+    }
 
-    container.appendChild(img);
+    alert('Falha no cadastro. Os arquivos enviados foram revertidos. Veja o console para mais detalhes.');
   }
-}
-
-function abrirConfirmacao() {
-  if (selectedItems.length === 0) {
-    alert("Selecione pelo menos 1 item.");
-    return;
-  }
-
-  const popup = document.getElementById("confirm-popup");
-  const thumbs = document.getElementById("thumbs");
-  thumbs.innerHTML = "";
-
-  selectedItems.forEach(url => {
-    const img = document.createElement("img");
-    img.src = url;
-    img.className = "thumb-img";
-    thumbs.appendChild(img);
-  });
-
-  popup.style.display = "flex";
-}
-
-function fecharConfirmacao() {
-  document.getElementById("confirm-popup").style.display = "none";
-}
-
-function confirmarSelecao() {
-  localStorage.setItem("selectedItems", JSON.stringify(selectedItems));
-  window.location.href = "resultado.html";
-}
-
-gerarBtn.addEventListener("click", abrirConfirmacao);
-
-loadItens();
-
-window.fecharConfirmacao = fecharConfirmacao;
-window.confirmarSelecao = confirmarSelecao;
-window.setView = setView;
+});
