@@ -1,122 +1,35 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apadrinator3000</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="icon" href="./images/favi.png" type="image/png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Padrinhos</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Apadrinator3000</h1>
-        <div class="welcome-content">
-            <button onclick="window.location.href='identificacao.html'" class="start-btn">Iniciar Escolha</button>
+  <div class="container">
+    <h1>Cadastro de Padrinhos</h1>
 
-        </div>
-        <div id="logos">
-            <img src="./images/caec.PNG" alt="Logo CAEC">
-            <img src="./images/binaria.png" alt="Logo Binária">
-        </div>
-    </div>
+    <form id="form">
+      <label for="nome">Qual seu nome?</label>
+      <input type="text" id="nome" placeholder="Seu nome" required>
+
+      <label for="matricula">Qual a sua matrícula?</label>
+      <input type="text" id="matricula" placeholder="Sua matrícula" required>
+
+      <label for="telefone">Qual seu telefone?</label>
+      <input type="text" id="telefone" placeholder="(99) 99999-9999" required>
+
+      <label for="fotoPerfil">Foto de perfil:</label>
+      <input type="file" id="fotoPerfil" accept="image/*" required>
+
+      <label for="fotosItens">Quais objetos seus te definem (mín. 1, máx. 2)?</label>
+      <input type="file" id="fotosItens" accept="image/*" multiple required>
+
+      <button type="submit">Cadastrar</button>
+    </form>
+  </div>
+
+  <script type="module" src="script.js"></script>
 </body>
 </html>
-
-<style>
-body {
-    font-family: 'Helvetica', Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
-    background-image: url('./images/background.jpg');
-    background-size: cover;
-    background-attachment: fixed;
-    background-position: center;
-    color: #ffffff;
-    text-shadow: 0 1px 1px rgba(0,0,0,0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    flex-direction: column;
-    text-align: center;
-}
-
-.container {
-    max-width: 90%;
-    width: 400px;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 15px;
-    padding: 20px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-#logos {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-top: 20px;
-}
-
-#logos img {
-    max-width: 100px;
-    height: auto;
-}
-
-h1 {
-    font-size: 36px;
-    margin-bottom: 10px;
-}
-
-.subtexto {
-    font-size: 16px;
-    margin-bottom: 20px;
-}
-
-.start-btn {
-    background: linear-gradient(to bottom, #26df11, #30A60F);
-    color: #2D332C;
-    padding: 12px 24px;
-    border: none;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
-    margin-top: 20px;
-}
-
-.start-btn:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    transform: translateY(-2px);
-}
-
-@media (max-width: 480px) {
-    .container {
-        width: 95%;
-        padding: 15px;
-    }
-    
-    h1 {
-        font-size: 28px;
-    }
-    
-    .subtexto {
-        font-size: 14px;
-    }
-}
-
-@media (max-width: 390px){
-    h1 {
-        font-size: 20px;
-    }
-    
-    .subtexto {
-        font-size: 18px;
-    }
-}
-</style>
